@@ -7,3 +7,13 @@ datasets/cifar10/cifar-10-batches-py/data_batch_4
 datasets/cifar10/cifar-10-batches-py/data_batch_5
 datasets/cifar10/cifar-10-batches-py/readme.html
 datasets/cifar10/cifar-10-batches-py/test_batch
+datasets/svhn/test_32x32.mat
+datasets/svhn/train_32x32.mat
+datasets/mnist/MNIST/raw/t10k-images-idx3-ubyte
+datasets/mnist/MNIST/raw/t10k-images-idx3-ubyte.gz
+datasets/mnist/MNIST/raw/t10k-labels-idx1-ubyte
+datasets/mnist/MNIST/raw/t10k-labels-idx1-ubyte.gz
+datasets/mnist/MNIST/raw/train-images-idx3-ubyte
+datasets/mnist/MNIST/raw/train-images-idx3-ubyte.gz
+datasets/mnist/MNIST/raw/train-labels-idx1-ubyte
+datasets/mnist/MNIST/raw/train-labels-idx1-ubyte.gz

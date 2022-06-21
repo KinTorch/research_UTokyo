@@ -121,3 +121,8 @@ class Client():
         else:
             self.net.load_state_dict(weight)
 
+    def data_len(self):
+        return len(self.train_dataset) + len(self.test_dataset)
+
+
+

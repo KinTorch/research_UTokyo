@@ -1,3 +1,4 @@
+import string
 import torch
 from client import Client
 from torch.utils.data import DataLoader, Dataset
@@ -23,17 +24,38 @@ class client_dataset(Dataset):
         return x, y
 
 
+class mixed_dataset(Dataset):
+    def __init__(self, *datasets):
+        self.len = 0
+
+        for data in datasets:
+            self.len += len(data)
+
+        self.datasets = datasets
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, k):
+        datasets = self.datasets
+
+        for data in datasets:
+            if k >= len(data):
+                k -= len(data)
+            else:
+                x = data[k][0]
+                y = data[k][1]
+                break
+
+        return x, y
+
+
 class client_manager():
 
     def __init__(self, num_client: int, iid: bool, net, epoch, batch):
         self.net = net
         self.num_epoch = epoch
         self.num_batch = batch
-
-        self.dataset_train = datasets.CIFAR10(
-            './datasets/cifar10', train=True, download=False, transform=transforms.ToTensor())
-        self.dataset_test = datasets.CIFAR10(
-            './datasets/cifar10', train=False, download=False, transform=transforms.ToTensor())
 
         self.clients = self.init_clients(num_client, iid)
 
@@ -47,7 +69,6 @@ class client_manager():
             c = Client(id, init_args)
             clients.append(c)
 
-        self.init_detaset(clients, iid)
         return clients
 
     def iid_group(self, dataset):
@@ -69,18 +90,44 @@ class client_manager():
         test_dataset = client_dataset(dataset, data_ids[-t:])
         return train_dataset, test_dataset
 
-    def init_detaset(self, clients: Client, iid: bool):
-        dataset_train = self.dataset_train
-        dataset_test = self.dataset_test
+    # size: -1 avg, >0 data size per client
+    def load_dataset(self, data_list, ids, iid: bool, size=-1):
+
+        data_mixed = []
+
+        if 'cifar10' in data_list:
+            data_mixed.append(datasets.CIFAR10(
+                './datasets/cifar10', train=True, download=False, transform=transforms.ToTensor()))
+
+        if 'svhn' in data_list:
+            data_mixed.append(datasets.SVHN(
+                './datasets/svhn', split='train', transform=transforms.ToTensor(), download=False))
+
+        if 'mnist' in data_list:
+            transform = transforms.Compose([transforms.Resize(32), transforms.Grayscale(
+                num_output_channels=3), transforms.ToTensor()])
+            data_mixed.append(datasets.MNIST(
+                './datasets/mnist', train=True, transform=transform, download=False))
+
+        else:
+            raise 'No dataset'
+
+        dataset_train = mixed_dataset(*data_mixed)
 
         if iid:
             data_ids = self.iid_group(dataset_train)
         else:
             data_ids = self.noniid_group(dataset_train)
 
-        for i, c in enumerate(clients):
-            t = len(dataset_train) // len(clients)
+        if size == -1:
+            t = len(dataset_train) // len(ids)
+        else:
+            assert size > 0
+            t = size
+
+        for i, id in enumerate(ids):
+
             train_dataset, test_dataset = self.init_client_dataset(
                 dataset_train, data_ids[i*t:(i+1)*t])
-                
-            c.load_data(train_dataset, test_dataset)
+
+            self.clients[id].load_data(train_dataset, test_dataset)
