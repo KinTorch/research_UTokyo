@@ -1,3 +1,4 @@
+import logging
 import string
 import torch
 from client import Client
@@ -5,17 +6,22 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
 import random
 import copy
+import numpy as np
 
 
 class client_dataset(Dataset):
     def __init__(self, dataset, data_ids):
         self.dataset = dataset
         self.data_ids = data_ids
+        self.len = len(self.data_ids)
 
     def __len__(self):
-        return len(self.data_ids)
+        return self.len
 
     def __getitem__(self, k):
+        if k >= self.len:
+            raise StopIteration
+
         dataset = self.dataset
         data_ids = self.data_ids
         x = dataset[data_ids[k]][0]
@@ -24,24 +30,50 @@ class client_dataset(Dataset):
         return x, y
 
 
-class mixed_dataset(Dataset):
-    def __init__(self, *datasets):
-        self.len = 0
+class shuffled_dataset(Dataset):
 
-        for data in datasets:
-            self.len += len(data)
-
-        self.datasets = datasets
+    def __init__(self, dataset):
+        self.dataset = dataset
+        self.data_ids = [i for i in range(len(dataset))]
+        random.shuffle(self.data_ids)
+        self.len = len(self.dataset)
 
     def __len__(self):
         return self.len
 
     def __getitem__(self, k):
-        datasets = self.datasets
+        if k >= self.len:
+            raise StopIteration
 
-        for data in datasets:
-            if k >= len(data):
-                k -= len(data)
+        x = self.dataset[self.data_ids[k]][0]
+        y = self.dataset[self.data_ids[k]][1]
+
+        return x, y
+
+
+class mixed_dataset(Dataset):
+    def __init__(self, *datasets):
+        self.lens = np.zeros((len(datasets)), dtype=int)
+
+        for i in range(len(datasets)):
+            self.lens[i] = len(datasets[i])
+
+        self.min_len = np.min(self.lens)
+
+        self.datasets = [shuffled_dataset(dataset) for dataset in datasets]
+
+        self.len = self.min_len * len(datasets)
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, k):
+        if k >= self.len:
+            raise StopIteration
+
+        for data in self.datasets:
+            if k >= self.min_len:
+                k -= self.min_len
             else:
                 x = data[k][0]
                 y = data[k][1]
@@ -52,20 +84,20 @@ class mixed_dataset(Dataset):
 
 class client_manager():
 
-    def __init__(self, num_client: int, iid: bool, net, epoch, batch):
+    def __init__(self, num_client: int, net, epoch, batch, logger):
         self.net = net
         self.num_epoch = epoch
         self.num_batch = batch
 
-        self.clients = self.init_clients(num_client, iid)
+        self.clients = self.init_clients(num_client, logger)
 
-    def init_clients(self, num_client, iid):
+    def init_clients(self, num_client, logger):
         clients = []
         for i in range(num_client):
             id = i
             net_c = copy.deepcopy(self.net)
             init_args = dict(net=net_c, epoch=self.num_epoch,
-                             batch=self.num_batch)
+                             batch=self.num_batch, logger=logger)
             c = Client(id, init_args)
             clients.append(c)
 
@@ -77,6 +109,7 @@ class client_manager():
         return data_ids
 
     def noniid_group(self, dataset):
+        t = dataset[0]
         labels = [y for _, y in dataset]
         data_ids = [i for i in range(len(dataset))]
         pairs = [(label, id) for label, id in zip(labels, data_ids)]
@@ -131,3 +164,5 @@ class client_manager():
                 dataset_train, data_ids[i*t:(i+1)*t])
 
             self.clients[id].load_data(train_dataset, test_dataset)
+
+

@@ -23,6 +23,9 @@ class Client():
         self.train_iter = None
         self.test_iter = None
 
+        self.logger = init_args['logger']
+
+
 
     def load_data(self, train_dataset, test_datset):
 
@@ -70,10 +73,10 @@ class Client():
                 scaler.update()
 
             if epoch % 2 == 0:
-                self.evaluate(False)
+                self.evaluate(False, epoch)
 
 
-    def evaluate(self, is_train: bool):
+    def evaluate(self, is_train: bool, epoch):
         net = self.net
 
         net.eval()
@@ -99,7 +102,7 @@ class Client():
         acc = cal_acc.compute()
         l /= len(data_iter)
 
-        print('loss: {}, acc: {}'.format(l, acc))
+        self.logger.info('epoch: {}, loss: {}, acc: {}'.format(epoch, l, acc))
 
         return l, acc
 

@@ -4,7 +4,7 @@ from client import Client
 from models.resnet18 import Resnet
 import random
 import torch.nn as nn
-import copy
+import os
 from torchmetrics import Accuracy
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -13,9 +13,7 @@ from torchvision import datasets, transforms
 import pickle
 import socket
 from tqdm import tqdm
-
-
-
+from logger import init_logger
 
 def try_all_gpus():
     devices = [torch.device(f'cuda:{i}')
@@ -57,7 +55,7 @@ def train_client(id):
     clients[id].train()
 
 
-def global_eval(net, data_iter):
+def global_eval(net, data_iter, ge):
     def loss(y, y_label):
         cel = nn.CrossEntropyLoss()
         return cel(y, y_label)
@@ -81,20 +79,20 @@ def global_eval(net, data_iter):
     acc = cal_acc.compute()
     l /= len(data_iter)
 
-    print('loss: {}, acc: {}'.format(l, acc))
+    logger.info('global epoch: {}, loss: {}, acc: {}'.format(ge ,l, acc))
 
 
 def connect_client(id):
-    #print('start listen')
 
     connector, _ = sk.accept()
-    data = pickle.dumps(clients[id])
+    logger.debug('waiting for {}'.format(id))
 
+    data = pickle.dumps(clients[id])
     data = data + 'end'.encode()
     connector.send(data)
 
     rev_data = bytes()
-    print('receiving client ', id)
+    
     while True:
         temp = connector.recv(10485760)
         rev_data += temp
@@ -105,6 +103,7 @@ def connect_client(id):
     rev_data = pickle.loads(rev_data)
 
     clients[id].load_weight(rev_data)
+    logger.debug('{} received'.format(id))
 
     del rev_data
     del data
@@ -129,13 +128,15 @@ def init_global_data():
 
 
 if __name__ == '__main__':
+    loggers = init_logger()
+    logger = loggers.get_server_logger()
     sk = socket.socket()
     sk.bind(('localhost', 8888))
     sk.listen()
-
+    logger.info('start socket')
     net = Resnet()
-    manager = client_manager(num_client=30, iid=True,
-                             net=net, epoch=5, batch=256)
+    manager = client_manager(num_client=30,
+                             net=net, epoch=5, batch=256, logger=loggers.get_clients_logger())
     clients = manager.clients
 
     manager.load_dataset(['mnist','svhn'], range(0, 30), True, -1)
@@ -163,9 +164,14 @@ if __name__ == '__main__':
         spread(clients, global_weight)
 
         net.load_state_dict(global_weight)
-        global_eval(net, init_global_data())
+        global_eval(net, init_global_data(), ge)
 
     tock = time.time()
-    print(tock - tick)
 
-    print('done')
+    logger.info('{} time consumed'.format(tock-tick))
+
+    torch.save(net.state_dict(), init_logger.get_server_path())
+
+    logger.info('model saved')
+
+

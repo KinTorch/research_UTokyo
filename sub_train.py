@@ -4,11 +4,11 @@ import socket
 
 from client import Client
 import argparse
+import logging
 
 
-
-
-print('sub train start')
+# logging.basicConfig(level=logging.INFO)
+# logging.info('sub train start')
 
 while True:
     sk = socket.socket()
@@ -29,13 +29,14 @@ while True:
 
 
     client = pickle.loads(rev_data)
-    print('client {} received.'.format(client.id))
+    #logging.info('client {} received.'.format(client.id))
+
     client.train()
 
     data = pickle.dumps(client.get_weight())
     data = data + 'end'.encode()
     sk.send(data)
-    print('client {} send.'.format(client.id))
+    #logging.info('client {} send.'.format(client.id))
     sk.close()
     del client
     del data
