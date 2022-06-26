@@ -5,6 +5,7 @@ import socket
 from client import Client
 import argparse
 import logging
+import hashlib
 
 
 # logging.basicConfig(level=logging.INFO)
@@ -27,7 +28,7 @@ while True:
             break
 
 
-
+    
     client = pickle.loads(rev_data)
     #logging.info('client {} received.'.format(client.id))
 

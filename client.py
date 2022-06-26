@@ -23,7 +23,8 @@ class Client():
         self.train_iter = None
         self.test_iter = None
 
-        self.logger = init_args['logger']
+        #self.logger = init_args['logger']
+
 
 
 
@@ -102,7 +103,7 @@ class Client():
         acc = cal_acc.compute()
         l /= len(data_iter)
 
-        self.logger.info('epoch: {}, loss: {}, acc: {}'.format(epoch, l, acc))
+        print('epoch: {}, loss: {}, acc: {}'.format(epoch, l, acc))
 
         return l, acc
 

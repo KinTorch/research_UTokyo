@@ -14,6 +14,7 @@ import pickle
 import socket
 from tqdm import tqdm
 from logger import init_logger
+import hashlib
 
 def try_all_gpus():
     devices = [torch.device(f'cuda:{i}')
@@ -87,8 +88,11 @@ def connect_client(id):
     connector, _ = sk.accept()
     logger.debug('waiting for {}'.format(id))
 
-    data = pickle.dumps(clients[id])
+    data = pickle.dumps(clients[id], protocol=4)
+
+    #print(hashlib.md5(data).hexdigest())
     data = data + 'end'.encode()
+    
     connector.send(data)
 
     rev_data = bytes()
@@ -136,12 +140,12 @@ if __name__ == '__main__':
     logger.info('start socket')
     net = Resnet()
     manager = client_manager(num_client=30,
-                             net=net, epoch=5, batch=256, logger=loggers.get_clients_logger())
+                             net=net, epoch=5, batch=256)
     clients = manager.clients
 
-    manager.load_dataset(['mnist','svhn'], range(0, 30), True, -1)
-    # data_size = clients[0].data_len()
-    # manager.load_dataset(['svhn'], range(15, 30), True, data_size)
+    manager.load_dataset(['mnist'], range(0, 15), True, -1)
+    data_size = clients[0].data_len()
+    manager.load_dataset(['svhn'], range(15, 30), True, data_size)
 
     ids = [i for i in range(len(clients))]
 
@@ -170,7 +174,7 @@ if __name__ == '__main__':
 
     logger.info('{} time consumed'.format(tock-tick))
 
-    torch.save(net.state_dict(), init_logger.get_server_path())
+    torch.save(net.state_dict(), loggers.get_server_path())
 
     logger.info('model saved')
 

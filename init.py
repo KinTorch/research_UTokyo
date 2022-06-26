@@ -84,20 +84,20 @@ class mixed_dataset(Dataset):
 
 class client_manager():
 
-    def __init__(self, num_client: int, net, epoch, batch, logger):
+    def __init__(self, num_client: int, net, epoch, batch):
         self.net = net
         self.num_epoch = epoch
         self.num_batch = batch
 
-        self.clients = self.init_clients(num_client, logger)
+        self.clients = self.init_clients(num_client)
 
-    def init_clients(self, num_client, logger):
+    def init_clients(self, num_client):
         clients = []
         for i in range(num_client):
             id = i
             net_c = copy.deepcopy(self.net)
             init_args = dict(net=net_c, epoch=self.num_epoch,
-                             batch=self.num_batch, logger=logger)
+                             batch=self.num_batch)
             c = Client(id, init_args)
             clients.append(c)
 
@@ -142,8 +142,8 @@ class client_manager():
             data_mixed.append(datasets.MNIST(
                 './datasets/mnist', train=True, transform=transform, download=False))
 
-        else:
-            raise 'No dataset'
+        if len(data_mixed) == 0:
+            raise ValueError('No dataset')
 
         dataset_train = mixed_dataset(*data_mixed)
 
