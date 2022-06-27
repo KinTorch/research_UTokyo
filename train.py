@@ -133,8 +133,9 @@ def init_global_data():
 
 
 if __name__ == '__main__':
-    logger = init_logger(0)
-    logger = logger.get_logger()
+    meta_logger = init_logger(0)
+    logger = meta_logger.get_logger()
+    LO = logger.get_logger()
     sk = socket.socket()
     sk.bind(('localhost', 8888))
     sk.listen()
@@ -152,7 +153,7 @@ if __name__ == '__main__':
 
     num_select = 30
     max_workers = 5
-    global_epoch = 30
+    global_epoch = 1
     net.apply(init_weights)
     global_weight = net.state_dict()
 
@@ -175,7 +176,7 @@ if __name__ == '__main__':
 
     logger.info('{} time consumed'.format(tock-tick))
 
-    torch.save(net.state_dict(), logger.get_path())
+    torch.save(net.state_dict(), meta_logger.get_path())
 
     logger.info('model saved')
 
