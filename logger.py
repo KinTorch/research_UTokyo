@@ -3,32 +3,45 @@ import logging.config
 from datetime import datetime
 import os
 
+
 class init_logger():
-    def __init__(self):
+    def __init__(self, target: int, timenow = None):  # 0 server 1 client
         logging.config.fileConfig('logger.cfg')
-        s_logger = logging.getLogger('server')
-        c_logger = logging.getLogger('client') #bug: lose handler 
-        timenow = datetime.now()
-        self.server_path = 'logs/{:%Y-%m-%d-%H-%M-%S}/server'.format(timenow)
-        self.clients_path = 'logs/{:%Y-%m-%d-%H-%M-%S}/clients'.format(timenow)
-        os.makedirs(self.server_path)
-        os.makedirs(self.clients_path)
-        server_filehd = logging.FileHandler(os.path.join(self.server_path,'output.log'))
-        client_filehd = logging.FileHandler(os.path.join(self.clients_path,'output.log'))
-        formatter = logging.Formatter('%(asctime)s|%(message)s',datefmt='%Y-%m-%d %H:%M:%S')
-        server_filehd.setFormatter(formatter)
-        client_filehd.setFormatter(formatter)
-        s_logger.addHandler(server_filehd)
-        c_logger.addHandler(client_filehd)
-        self.s_logger = s_logger
-        self.c_logger = c_logger
-    
-    def get_server_logger(self):
-        return self.s_logger
-    
-    def get_clients_logger(self):
-        return self.c_logger
+        
+        formatter = logging.Formatter(
+            '%(asctime)s|%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        self.target = target
 
-    def get_server_path(self):
-        return self.server_path
+        if target == 0:
+            timenow = datetime.now()
+            s_logger = logging.getLogger('server')
+            self.log_path = 'logs/{:%Y-%m-%d-%H-%M-%S}/server'.format(timenow)
+            os.makedirs(self.log_path, exist_ok=True)
+            server_filehd = logging.FileHandler(
+                os.path.join(self.log_path, 'output.log'))
+            server_filehd.setFormatter(formatter)
+            s_logger.addHandler(server_filehd)
+            self.logger = s_logger
 
+        elif target == 1:
+            assert timenow != None
+            c_logger = logging.getLogger('client')
+            self.log_path = 'logs/{:%Y-%m-%d-%H-%M-%S}/clients'.format(timenow)
+            os.makedirs(self.log_path, exist_ok=True)
+            client_filehd = logging.FileHandler(
+                os.path.join(self.log_path, 'output.log'))
+            client_filehd.setFormatter(formatter)
+            c_logger.addHandler(client_filehd)
+            self.logger = c_logger
+
+        else:
+            raise ValueError('wrong logging target')
+
+    def get_logger(self):
+        return self.logger
+
+    def get_path(self):
+        return self.log_path
+
+    def get_target(self):
+        return self.target

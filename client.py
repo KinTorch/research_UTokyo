@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 import copy
 from tqdm import tqdm
 from torch.cuda.amp import autocast, GradScaler
-
+from logger import init_logger
 
 
 class Client():
@@ -22,11 +22,15 @@ class Client():
 
         self.train_iter = None
         self.test_iter = None
+        
+        self.time = init_args['time']
+        self.logger = None
 
-        #self.logger = init_args['logger']
-
-
-
+    def init_logger(self):
+        assert self.logger == None
+        logger = init_logger(1, self.time)
+        self.logger = logger.get_logger()
+        self.logger.info('client {} received.'.format(self.id))
 
     def load_data(self, train_dataset, test_datset):
 
@@ -103,7 +107,7 @@ class Client():
         acc = cal_acc.compute()
         l /= len(data_iter)
 
-        print('epoch: {}, loss: {}, acc: {}'.format(epoch, l, acc))
+        self.logger.info('epoch: {}, loss: {}, acc: {}'.format(epoch, l, acc))
 
         return l, acc
 

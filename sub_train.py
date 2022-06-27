@@ -30,14 +30,14 @@ while True:
 
     
     client = pickle.loads(rev_data)
-    #logging.info('client {} received.'.format(client.id))
 
+    client.init_logger()
     client.train()
 
     data = pickle.dumps(client.get_weight())
     data = data + 'end'.encode()
     sk.send(data)
-    #logging.info('client {} send.'.format(client.id))
+
     sk.close()
     del client
     del data

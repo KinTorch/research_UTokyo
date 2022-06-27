@@ -8,7 +8,6 @@ import random
 import copy
 import numpy as np
 
-
 class client_dataset(Dataset):
     def __init__(self, dataset, data_ids):
         self.dataset = dataset
@@ -84,12 +83,13 @@ class mixed_dataset(Dataset):
 
 class client_manager():
 
-    def __init__(self, num_client: int, net, epoch, batch):
+    def __init__(self, num_client: int, net, epoch, batch, time):
         self.net = net
         self.num_epoch = epoch
         self.num_batch = batch
-
+        self.time = time
         self.clients = self.init_clients(num_client)
+        
 
     def init_clients(self, num_client):
         clients = []
@@ -97,7 +97,7 @@ class client_manager():
             id = i
             net_c = copy.deepcopy(self.net)
             init_args = dict(net=net_c, epoch=self.num_epoch,
-                             batch=self.num_batch)
+                             batch=self.num_batch, time=self.time)
             c = Client(id, init_args)
             clients.append(c)
 

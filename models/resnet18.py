@@ -1,4 +1,3 @@
-from turtle import forward
 import torch
 import torchvision.models as models
 import torch.nn as nn

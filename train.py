@@ -15,6 +15,7 @@ import socket
 from tqdm import tqdm
 from logger import init_logger
 import hashlib
+from datetime import datetime
 
 def try_all_gpus():
     devices = [torch.device(f'cuda:{i}')
@@ -132,15 +133,15 @@ def init_global_data():
 
 
 if __name__ == '__main__':
-    loggers = init_logger()
-    logger = loggers.get_server_logger()
+    logger = init_logger(0)
+    logger = logger.get_logger()
     sk = socket.socket()
     sk.bind(('localhost', 8888))
     sk.listen()
     logger.info('start socket')
     net = Resnet()
     manager = client_manager(num_client=30,
-                             net=net, epoch=5, batch=256)
+                             net=net, epoch=5, batch=256, time = datetime.now())
     clients = manager.clients
 
     manager.load_dataset(['mnist'], range(0, 15), True, -1)
@@ -150,7 +151,7 @@ if __name__ == '__main__':
     ids = [i for i in range(len(clients))]
 
     num_select = 30
-    max_workers = 3
+    max_workers = 5
     global_epoch = 30
     net.apply(init_weights)
     global_weight = net.state_dict()
@@ -174,7 +175,7 @@ if __name__ == '__main__':
 
     logger.info('{} time consumed'.format(tock-tick))
 
-    torch.save(net.state_dict(), loggers.get_server_path())
+    torch.save(net.state_dict(), logger.get_path())
 
     logger.info('model saved')
 
